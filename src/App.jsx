@@ -80,51 +80,98 @@ export default function App() {
     const targetEvent = events[targetDateStr] || { type: 'none', injury: false };
     const nextMatch = getNextMatchDate(targetDateStr);
     const prevMatch = getPrevMatchDate(targetDateStr);
-    const weeklyMatchCount = getWeeklyMatchCount(targetDateStr);
     const dayOfWeek = new Date(targetDateStr + 'T00:00:00').getDay();
 
-    if (targetEvent.injury) return { shortTitle: "Rehab", colorClass: "text-red-400 bg-red-400/10 border-red-500/20", phase: "REHABILITATION PROTOCOL", focus: `${targetEvent.injuryRegion} Protection`, details: "Standard periodization suspended. Focus on rehab.", workout: REHAB_PROTOCOLS[targetEvent.injuryRegion], icon: <Thermometer className="w-6 h-6 text-red-500" /> };
-    if (targetEvent.type === 'match') return { shortTitle: "Match Day", colorClass: "text-white bg-blue-600 border-blue-500 shadow-sm", phase: `MATCH DAY (Load: ${targetEvent.difficulty || 3}/5)`, focus: "Peak Performance", details: "High-stress match environment. Optimize hydration.", workout: ["Pre-match: Phase 1 & 2 Warm-up.", "Phase 3: 4-6 short linear sprints.", "Post-match: Instant hydration + 20g protein."], icon: <Timer className="w-6 h-6 text-blue-100" /> };
-    if (targetEvent.type === 'travel') return { shortTitle: "Travel Flush", colorClass: "text-slate-300 bg-slate-600/20 border-slate-500/30", phase: "TRAVEL DAY FLUSH", focus: "Mobility & Decompression", details: "Sitting restricts blood flow. Move without load.", workout: ["15 mins dynamic stretching.", "Spinal decompression (dead hangs).", "Hydrate aggressively: 32oz electrolyte water."], icon: <Plane className="w-6 h-6 text-slate-400" /> };
-    if (targetEvent.type === '4th') return { shortTitle: "4th Official", colorClass: "text-purple-300 bg-purple-500/20 border-purple-500/30", phase: "4TH OFFICIAL", focus: "Baseline Mobility", details: "Low running volume, high standing fatigue.", workout: ["Participate fully in crew warm-up.", "Avoid Phase 3 sprints.", "Post-match: 10 mins lower back stretching."], icon: <Flag className="w-6 h-6 text-purple-400" /> };
-
-    if (prevMatch && prevMatch.daysSince === 1 && events[addDays(targetDateStr, -2)]?.type === 'match') {
-      const load = (events[addDays(targetDateStr, -2)]?.difficulty || 3) + prevMatch.difficulty;
-      if (load >= 6) return { shortTitle: "Pool Flush", colorClass: "text-cyan-400 bg-cyan-500/20 border-cyan-400/30", phase: "TOURNAMENT: POOL FLUSH", focus: "Non-Weightbearing", details: "Consecutive match days. Spare joints entirely.", workout: ["20-30 mins pool recovery.", "No structural lifting or running."], icon: <Anchor className="w-6 h-6 text-cyan-400" /> };
-    }
-    if (prevMatch && prevMatch.daysSince === 2 && events[addDays(targetDateStr, -3)]?.type === 'match') {
-      return { shortTitle: "Low-Impact Z2", colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20", phase: "TOURNAMENT: MD+2 FLUSH", focus: "Metabolic Clearance", details: "Day 2 post-tournament. Clear residual waste.", workout: ["40-60 mins structural Zone 2 cardio (Bike/Elliptical)."], icon: <Waves className="w-6 h-6 text-cyan-400" /> };
-    }
-
-    if (weeklyMatchCount >= 2) {
-      if (dayOfWeek === 0) return { shortTitle: "Mod VO2 & Legs", colorClass: "text-red-400 bg-red-500/10 border-red-500/20", phase: "2-MATCH: COMBINED", focus: "Mod VO2 & Lower Strength", details: "Congested week. Combined load.", workout: ["15x15 intervals x 2 blocks.", "2 sets Goblet Squats + Copenhagen holds."], icon: <TrendingUp className="w-6 h-6 text-red-500" /> };
-      if (dayOfWeek === 1) return { shortTitle: "Z2 Flush", colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20", phase: "2-MATCH: RECOVERY", focus: "Low-Impact Flush", details: "Following combined workout. Spare resistance.", workout: ["20-30 mins easy bike ride.", "15 mins deep foam rolling."], icon: <Waves className="w-6 h-6 text-cyan-400" /> };
-      if (dayOfWeek === 2) return { shortTitle: "Taper & Prime", colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", phase: "MD-1: PRIMING", focus: "CNS & Upper Body", details: "Protect legs. Prime CNS.", workout: ["Upper Body Lift (2x10).", "3-4 crisp 10m turf accelerations."], icon: <Activity className="w-6 h-6 text-emerald-500" /> };
-      if (dayOfWeek === 4) return { shortTitle: "MD+1 Recovery", colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20", phase: "MD+1: POST-MATCH", focus: "Non-Weightbearing", details: "Flush strain without joint loading.", workout: ["25 mins stationary cycling or pool.", "Avoid running."], icon: <Waves className="w-6 h-6 text-cyan-400" /> };
-      if (dayOfWeek === 5) return { shortTitle: "Z2 Maintenance", colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", phase: "MD-1: PRE-MATCH FLUSH", focus: "Elastic Priming", details: "Prep for second match.", workout: ["15 mins light Zone 2 jog.", "4 sets progressive 40m strides."], icon: <Activity className="w-6 h-6 text-emerald-500" /> };
-      if (dayOfWeek === 6) return { shortTitle: "Active Recovery", colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20", phase: "MD+1: ACTIVE RECOVERY", focus: "Decompression", details: "2-match week complete. Dissipate fatigue.", workout: ["30 mins low-impact cardio.", "Extended passive stretching."], icon: <Waves className="w-6 h-6 text-cyan-400" /> };
+    // 1. Injury & Rehabilitation Override (IP Category)
+    if (targetEvent.injury) {
+      return { 
+        shortTitle: "Rehab (IP)", 
+        colorClass: "text-red-400 bg-red-400/10 border-red-500/20", 
+        phase: "INJURY PREVENTION & REHAB", 
+        focus: `Active Recovery & ${targetEvent.injuryRegion} Protection`, 
+        details: "USSF Protocol: Standard periodization suspended for tissue protection.", 
+        workout: REHAB_PROTOCOLS[targetEvent.injuryRegion] || ["12-Min Core Circuit (modified)", "Stationary bike flush"], 
+        icon: <Thermometer className="w-6 h-6 text-red-500" /> 
+      };
     }
 
-    if (prevMatch && prevMatch.daysSince === 1) return { shortTitle: "MD+1 Recovery", colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20", phase: "MD+1: ACTIVE RECOVERY", focus: "Non-Weightbearing Flush", details: "Spontaneous joint pounding prohibited.", workout: ["25 mins Bike, Rower, or Pool.", "15 mins foam rolling calves/quads."], icon: <Waves className="w-6 h-6 text-cyan-400" /> };
-
-    if (nextMatch) {
-      const d = nextMatch.daysUntil;
-      if (d === 1) return { shortTitle: "Upper/Prime", colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", phase: "MD-1: UPPER & TAPER", focus: "Strength & CNS", details: "Save leg power.", workout: ["Upper Body Lift (3x10).", "3-4 short 10m sprints."], icon: <Dumbbell className="w-6 h-6 text-emerald-500" /> };
-      if (d === 2) return { shortTitle: "Sprints/COD", colorClass: "text-blue-400 bg-blue-500/10 border-blue-500/20", phase: "MD-2: SPRINTS & COD", focus: "Change of Direction", details: "High intensity speed & cutting.", workout: ["FIFA 11+ Protocol.", "CODA Test Practice.", "3x30m maximum sprints."], icon: <Timer className="w-6 h-6 text-blue-400" /> };
-      if (d === 3) return { shortTitle: "Z2 + Lower", colorClass: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20", phase: "MD-3: Z2 & LOWER", focus: "Aerobic Floor & Base", details: "Targeted conditioning.", workout: ["30 mins Zone 2 jogging/cycling.", "Goblet Squats & RDLs (3x8).", "Copenhagen holds."], icon: <Dumbbell className="w-6 h-6 text-indigo-400" /> };
-      if (d === 4) return { shortTitle: "VO2 Max", colorClass: "text-red-500 bg-red-600/10 border-red-500/30", phase: "MD-4: VO2 MAX", focus: "Maximal Stress", details: "Pure cardiovascular threshold. No legs lifting.", workout: ["Norwegian 4x4 intervals.", "Dynamic mobility map."], icon: <TrendingUp className="w-6 h-6 text-red-600" /> };
-      if (d === 5) return { shortTitle: "Z2 Cond.", colorClass: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20", phase: "MD-5: Z2 CONDITIONING", focus: "Engine Building", details: "Continuous steady-state base.", workout: ["45-60 mins Zone 2 running.", "Trunk stabilization (Planks)."], icon: <Activity className="w-6 h-6 text-yellow-500" /> };
+    // 2. Match Day (MD)
+    if (targetEvent.type === 'match') {
+      return { 
+        shortTitle: "Match Day (MD)", 
+        colorClass: "text-white bg-blue-600 border-blue-500 shadow-sm", 
+        phase: "MATCH DAY OPERATIONS", 
+        focus: "Peak Performance & Hydration", 
+        details: "USSF Protocol: Complete 15-25 min warm-up (Jogging, Mobility, Dynamic Stretching, Agility, Short Accels). Post-match rehydrate immediately.", 
+        workout: ["Pre-Match Phase 1-5 Warm-up", "Match Officiating Duty", "Post-Match Hydration + 20g Protein within 30m"], 
+        icon: <Timer className="w-6 h-6 text-blue-100" /> 
+      };
     }
 
-    if (dayOfWeek === 1) return { shortTitle: "Z2 Cond.", colorClass: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20", phase: "GPP: Z2 CONDITIONING", focus: "Aerobic Base", details: "Build cardiovascular floor.", workout: ["45-60 mins Zone 2 run/bike.", "Planks & Bird Dogs."], icon: <Activity className="w-6 h-6 text-yellow-400" /> };
-    if (dayOfWeek === 2) return { shortTitle: "VO2 Max", colorClass: "text-red-500 bg-red-600/10 border-red-500/30", phase: "GPP: VO2 MAX", focus: "Cardiorespiratory Peak", details: "Mid-week anaerobic peak.", workout: ["Norwegian 4x4 intervals.", "Structural stretching."], icon: <TrendingUp className="w-6 h-6 text-red-500" /> };
-    if (dayOfWeek === 3) return { shortTitle: "Z2 + Lower", colorClass: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20", phase: "GPP: Z2 & LOWER", focus: "Kinetic Chain", details: "Leg strength & aerobic flush.", workout: ["30 mins Zone 2.", "Squats & RDLs (3x8).", "Copenhagen holds."], icon: <Dumbbell className="w-6 h-6 text-indigo-400" /> };
-    if (dayOfWeek === 4) return { shortTitle: "Sprints/COD", colorClass: "text-blue-400 bg-blue-500/10 border-blue-500/20", phase: "GPP: SPRINTS & COD", focus: "Elastic Priming", details: "Agility tracking mechanics.", workout: ["FIFA 11+ Protocol.", "CODA Test Practice.", "3x30m maximum sprints."], icon: <Timer className="w-6 h-6 text-blue-400" /> };
-    if (dayOfWeek === 5) return { shortTitle: "Upper", colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", phase: "GPP: UPPER STRENGTH", focus: "Posture & Dynamics", details: "Ensure balanced kinetic chains.", workout: ["Bench Press & Pull-ups (3x10).", "Pallof Presses."], icon: <Dumbbell className="w-6 h-6 text-emerald-500" /> };
-    if (dayOfWeek === 6) return { shortTitle: "Long Z2", colorClass: "text-yellow-500 bg-yellow-500/5 border-yellow-500/25", phase: "GPP: EXTENDED AEROBIC", focus: "Endurance Floor", details: "Low-impact endurance base.", workout: ["60-75 mins continuous Zone 2.", "Mobility flow."], icon: <Activity className="w-6 h-6 text-yellow-500" /> };
-    
-    return { shortTitle: "Active Rest", colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20", phase: "GPP: REST & RECOVERY", focus: "Myofascial Release", details: "Active tissue hydration.", workout: ["15-20 mins yoga flow.", "Full-body foam rolling."], icon: <Waves className="w-6 h-6 text-cyan-400" /> };
+    // 3. MD+1: Active Recovery (LI Active Recovery)
+    if (prevMatch && prevMatch.daysSince === 1) {
+      return { 
+        shortTitle: "MD+1 Recovery", 
+        colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20", 
+        phase: "MD+1: LOW INTENSITY ACTIVE RECOVERY", 
+        focus: "Flush Metabolic Waste & Leg Turnover", 
+        details: "USSF Standard: 30 min continuous jog at 5.0-7.5 mph on soft surface, OR 60 min cycling / 45 min cross-trainer.", 
+        workout: ["Option A: 30-min recovery jog (accelerate 100m every 5 min)", "Option B: 60-min Cycling (HR < 70% HRmax)", "Post-session static stretching"], 
+        icon: <Activity className="w-6 h-6 text-cyan-400" /> 
+      };
+    }
+
+    // 4. MD-1: Sharpen / Taper (CNS Activation)
+    if (nextMatch && nextMatch.daysUntil === 1) {
+      return { 
+        shortTitle: "MD-1 Sharpen", 
+        colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", 
+        phase: "MD-1: SHARPEN & CNS PRIMING", 
+        focus: "Explosive Activation without Fatigue", 
+        details: "USSF Standard: Keep distance short, intensity high. Upper body strength or short acceleration bursts.", 
+        workout: ["Running Technique: A-skips & B-skips (2x16yd)", "4 short acceleration bursts (10m-15m) at 100%", "12-Minute Core Circuit (20s work / 10s rest)"], 
+        icon: <TrendingUp className="w-6 h-6 text-emerald-500" /> 
+      };
+    }
+
+    // 5. MD-2: Intensity Load (HII / SE / St SP)
+    if (nextMatch && nextMatch.daysUntil === 2) {
+      return { 
+        shortTitle: "MD-2 Intensity", 
+        colorClass: "text-blue-400 bg-blue-500/10 border-blue-500/20", 
+        phase: "MD-2: INTENSITY LOAD & SPEED ENDURANCE", 
+        focus: "High-Speed Running & Match Simulation", 
+        details: "USSF Standard: High intensity and speed, short distances. Field-run interval training.", 
+        workout: ["Endurance Interval High Intensity (HII): 3 sets of 5 laps", "Speed Endurance (SE) or Starting Speed drills", "Stretching & Foam rolling"], 
+        icon: <Timer className="w-6 h-6 text-blue-400" /> 
+      };
+    }
+
+    // 6. MD-3: RSA & Agility
+    if (nextMatch && nextMatch.daysUntil === 3) {
+      return { 
+        shortTitle: "MD-3 RSA/Agi", 
+        colorClass: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20", 
+        phase: "MD-3: REPEATED SPRINT ABILITY & AGILITY", 
+        focus: "Incomplete Recovery Sprints & CODA Drills", 
+        details: "USSF Standard: Repeated Sprint Ability (RSA) 3 sets of 5 laps, plus Ladder agility or Star drills.", 
+        workout: ["RSA: Relaxed-jog recovery sprints (3 x 5 laps)", "Coordination & Agility: Ladder 4 exercises into sprint", "12-Minute Core Circuit"], 
+        icon: <Activity className="w-6 h-6 text-indigo-400" /> 
+      };
+    }
+
+    // Default General Weekly Fallback (GPP / Off-Season)
+    return { 
+      shortTitle: "GPP Maintenance", 
+      colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", 
+      phase: "GENERAL PHYSICAL PREPARATION (GPP)", 
+      focus: "Base Strength & Aerobic Efficiency", 
+      details: "USSF Standard: Maintain 4 sessions/week balancing endurance, strength, and core stability.", 
+      workout: ["Endurance Duration (HID): 30-45 min continuous run or interval blocks", "Strength (STR): Basic strength circuit (4 sets of 6 reps)", "12-Minute Core Circuit"], 
+      icon: <Dumbbell className="w-6 h-6 text-emerald-400" /> 
+    };
   };
+
 
   const handleDayClick = (day) => {
     const dateStr = getDateStr(year, month, day); setSelectedDateStr(dateStr);
